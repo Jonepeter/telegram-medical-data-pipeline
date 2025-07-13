@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5000:5432"
+      - "5000:${DB_PORT}"
     volumes:
       - postgres_data1:C:\Users\jonep
       # - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
