@@ -2,42 +2,161 @@ version: 2
 
 sources:
   - name: raw
+    description: "Raw data from Telegram channels and image detection"
     tables:
       - name: telegram_messages
+        description: "Raw messages scraped from Telegram channels"
         columns:
           - name: message_id
+            description: "Unique identifier for each message"
             tests:
               - not_null
+              - unique
           - name: channel_name
+            description: "Name of the Telegram channel"
             tests:
               - not_null
+          - name: message_text
+            description: "Text content of the message"
+          - name: message_date
+            description: "Date and time when message was posted"
+            tests:
+              - not_null
+          - name: has_media
+            description: "Boolean indicating if message contains media"
+          - name: media_type
+            description: "Type of media (photo, document, etc.)"
+          - name: scraped_at
+            description: "Timestamp when data was scraped"
+            tests:
+              - not_null
+              
       - name: image_detections
+        description: "YOLO object detection results for images"
         columns:
           - name: message_id
+            description: "Reference to the message containing the image"
             tests:
               - not_null
+          - name: detection_results
+            description: "JSON containing detected objects and confidence scores"
+          - name: processed_at
+            description: "Timestamp when image was processed"
 
 models:
-  - name: dim_channels
+  - name: stg_telegram_messages
+    description: "Cleaned and standardized Telegram messages"
     columns:
-      - name: channel_id
+      - name: message_id
+        description: "Unique message identifier"
         tests:
           - unique
           - not_null
       - name: channel_name
+        description: "Standardized channel name"
+        tests:
+          - not_null
+      - name: message_date
+        description: "Parsed message date"
+        tests:
+          - not_null
+          
+  - name: stg_image_detections
+    description: "Cleaned image detection results"
+    columns:
+      - name: message_id
+        description: "Reference to source message"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_telegram_messages')
+              field: message_id
+
+  - name: dim_channels
+    description: "Channel dimension table"
+    columns:
+      - name: channel_id
+        description: "Unique channel identifier"
+        tests:
+          - unique
+          - not_null
+      - name: channel_name
+        description: "Channel name"
+        tests:
+          - unique
+          - not_null
+      - name: first_message_date
+        description: "Date of first scraped message"
+      - name: last_message_date
+        description: "Date of most recent scraped message"
+      - name: total_messages
+        description: "Total number of messages scraped"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+
+  - name: dim_dates
+    description: "Date dimension table"
+    columns:
+      - name: date_key
+        description: "Date in YYYYMMDD format"
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        description: "Full date"
         tests:
           - unique
           - not_null
 
   - name: fct_messages
+    description: "Message fact table"
     columns:
       - name: message_id
+        description: "Unique message identifier"
         tests:
           - unique
           - not_null
       - name: channel_id
+        description: "Reference to channel dimension"
         tests:
           - not_null
           - relationships:
               to: ref('dim_channels')
               field: channel_id
+      - name: date_key
+        description: "Reference to date dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: message_length
+        description: "Length of message text"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              
+  - name: fct_image_detections
+    description: "Image detection fact table"
+    columns:
+      - name: message_id
+        description: "Reference to source message"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fct_messages')
+              field: message_id
+      - name: object_class
+        description: "Detected object class"
+        tests:
+          - not_null
+      - name: confidence_score
+        description: "Detection confidence score"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
