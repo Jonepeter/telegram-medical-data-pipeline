@@ -264,89 +264,64 @@ pytest --cov=src tests/
 - **fct_messages**: Message facts with metrics
 - **fct_image_detections**: Object detection facts
 
-## 🔧 Configuration
+## Environment Setup
 
-### Key Configuration Files
-- `.env`: Environment variables and secrets
-- `src/config.py`: Application configuration
-- `dbt_project/dbt_project.yml`: dbt project settings
-- `docker-compose.yml`: Service orchestration
-- `dbt_project/profiles.yml`: Database connections
+1. Copy `.env.example` to `.env`:
+   ```sh
+   cp .env.example .env
+   ```
+2. Fill in your credentials and configuration in `.env`.
 
-### Environment Variables
-```bash
-# Telegram Configuration
-TELEGRAM_API_ID=          # Your Telegram API ID
-TELEGRAM_API_HASH=        # Your Telegram API Hash
-TELEGRAM_PHONE=           # Your phone number
-TELEGRAM_CHANNELS=        # Comma-separated channel list
+| Variable            | Description                       |
+|---------------------|-----------------------------------|
+| TELEGRAM_API_ID     | Telegram API ID                   |
+| TELEGRAM_API_HASH   | Telegram API Hash                 |
+| TELEGRAM_BOT_TOKEN  | Telegram Bot Token                |
+| POSTGRES_USER       | PostgreSQL username               |
+| POSTGRES_PASSWORD   | PostgreSQL password               |
+| POSTGRES_DB         | PostgreSQL database name          |
+| POSTGRES_HOST       | PostgreSQL host (default: localhost) |
+| POSTGRES_PORT       | PostgreSQL port (default: 5432)   |
+| LOG_LEVEL           | Logging level (default: INFO)     |
 
-# Database Configuration
-DB_HOST=                  # Database host
-DB_PORT=                  # Database port
-DB_NAME=                  # Database name
-DB_USER=                  # Database user
-DB_PASSWORD=              # Database password
+**Note:** Never commit your `.env` file or any secrets to version control.
 
-# API Configuration
-API_HOST=                 # API server host
-API_PORT=                 # API server port
+## Project Structure
+
+```plaintext
+telegram-medical-data-pipeline/
+├── data/                # Data storage (raw, processed, etc.)
+├── dbt_project/         # dbt models, tests, and configs
+├── docker/              # Docker-related scripts/configs
+├── images/              # Image assets
+├── logs/                # Log files
+├── notebooks/           # Jupyter notebooks
+├── src/                 # Source code (API, scraping, enrichment, orchestration)
+├── Dockerfile           # Docker build file
+├── docker-compose.yml   # Docker Compose config
+├── requirements.txt     # Python dependencies
+├── run_pipeline.py      # Pipeline runner script
+├── setup.py             # Python package setup
+└── README.md            # Project documentation
 ```
 
-## 🚨 Troubleshooting
+## Running the Scraper
 
-### Common Issues
+- The Telegram scraper extracts data and saves it to `data/raw/YYYY-MM-DD/channelname.json`.
+- Logs are written to the `logs/` directory.
+- Ensure your `.env` is configured before running.
 
-1. **Telegram Authentication Errors**
-   ```bash
-   # Clear session and re-authenticate
-   rm *.session
-   python -m src.scraping.telegram_scraper
-   ```
+## DBT Usage
 
-2. **Database Connection Issues**
-   ```bash
-   # Check database status
-   docker-compose ps postgres
-   
-   # Reset database
-   docker-compose down -v
-   docker-compose up -d postgres
-   ```
+- dbt models are in `dbt_project/models/`.
+- To run dbt transformations:
+  ```sh
+  cd dbt_project
+  dbt run
+  dbt test
+  ```
+- Ensure your dbt profile is configured for PostgreSQL.
 
-3. **dbt Connection Problems**
-   ```bash
-   # Test dbt connection
-   cd dbt_project
-   dbt debug
-   
-   # Check profiles configuration
-   cat profiles.yml
-   ```
-
-4. **Docker Issues**
-   ```bash
-   # Rebuild containers
-   docker-compose down
-   docker-compose build --no-cache
-   docker-compose up -d
-   ```
-
-### Logs and Monitoring
-
-```bash
-# View application logs
-tail -f logs/telegram_scraper.log
-tail -f logs/api.log
-
-# Docker logs
-docker-compose logs -f app
-docker-compose logs -f postgres
-
-# dbt logs
-cd dbt_project
-cat logs/dbt.log
-```
 
 ## 🤝 Contributing
 
@@ -367,3 +342,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - YOLO for object detection capabilities
 - FastAPI for API framework
 - Dagster for pipeline orchestration
+
