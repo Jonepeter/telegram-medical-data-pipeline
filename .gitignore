@@ -52,3 +52,5 @@ images/
 #session 
 .session
 profiles.yml
+.env
+.env.example
