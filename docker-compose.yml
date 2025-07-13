@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:14.18
+    container_name: telegram_container
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5000:5432"
+    volumes:
+      - postgres_data1:C:\Users\jonep
+      # - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+volumes:
+  postgres_data1:
