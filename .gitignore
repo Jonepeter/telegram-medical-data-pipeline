@@ -27,7 +27,8 @@ data/
 
 # Logs
 *.log
-logs/
+logs/*.log
+!logs/.gitkeep
 
 # IDE
 .vscode/
