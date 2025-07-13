@@ -4,48 +4,96 @@ import os
 from datetime import datetime
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
+from telethon.errors import FloodWaitError, ChannelPrivateError, UsernameNotOccupiedError
 from src.config import TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_PHONE, TELEGRAM_CHANNELS
 import logging
+from typing import List, Dict, Any
+import time
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging with more detail
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/telegram_scraper.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 class TelegramScraper:
     def __init__(self):
         self.client = TelegramClient('session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
     
-    async def scrape_channel(self, channel_name, limit=100):
-        """Scrape messages from a Telegram channel"""
+    async def scrape_channel(self, channel_name: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Scrape messages from a Telegram channel with comprehensive error handling"""
         messages_data = []
+        retry_count = 0
+        max_retries = 3
         
-        try:
-            await self.client.start(phone=TELEGRAM_PHONE)
-            entity = await self.client.get_entity(channel_name)
-            
-            async for message in self.client.iter_messages(entity, limit=limit):
-                message_data = {
-                    'message_id': message.id,
-                    'channel_name': channel_name,
-                    'message_text': message.text or '',
-                    'message_date': message.date.isoformat() if message.date else None,
-                    'has_media': message.media is not None,
-                    'media_type': self._get_media_type(message.media),
-                    'scraped_at': datetime.now().isoformat(),
-                    'raw_data': {
-                        'views': getattr(message, 'views', 0),
-                        'forwards': getattr(message, 'forwards', 0),
-                        'replies': getattr(message.replies, 'replies', 0) if message.replies else 0
-                    }
-                }
+        while retry_count < max_retries:
+            try:
+                logger.info(f"Starting scrape for channel: {channel_name} (attempt {retry_count + 1})")
+                await self.client.start(phone=TELEGRAM_PHONE)
+                entity = await self.client.get_entity(channel_name)
                 
-                # Download media if present
-                if message.media and isinstance(message.media, (MessageMediaPhoto, MessageMediaDocument)):
-                    await self._download_media(message, channel_name)
+                message_count = 0
+                async for message in self.client.iter_messages(entity, limit=limit):
+                    try:
+                        message_data = {
+                            'message_id': message.id,
+                            'channel_name': channel_name.replace('@', ''),
+                            'message_text': message.text or '',
+                            'message_date': message.date.isoformat() if message.date else None,
+                            'has_media': message.media is not None,
+                            'media_type': self._get_media_type(message.media),
+                            'scraped_at': datetime.now().isoformat(),
+                            'raw_data': {
+                                'views': getattr(message, 'views', 0),
+                                'forwards': getattr(message, 'forwards', 0),
+                                'replies': getattr(message.replies, 'replies', 0) if message.replies else 0,
+                                'grouped_id': getattr(message, 'grouped_id', None)
+                            }
+                        }
+                        
+                        # Download media if present
+                        if message.media and isinstance(message.media, (MessageMediaPhoto, MessageMediaDocument)):
+                            media_path = await self._download_media(message, channel_name)
+                            message_data['media_path'] = media_path
+                        
+                        messages_data.append(message_data)
+                        message_count += 1
+                        
+                        # Rate limiting
+                        if message_count % 10 == 0:
+                            await asyncio.sleep(1)
+                            
+                    except Exception as msg_error:
+                        logger.warning(f"Error processing message {message.id}: {msg_error}")
+                        continue
                 
-                messages_data.append(message_data)
+                logger.info(f"Successfully scraped {len(messages_data)} messages from {channel_name}")
+                break
                 
-        except Exception as e:
-            logger.error(f"Error scraping channel {channel_name}: {e}")
+            except FloodWaitError as e:
+                wait_time = e.seconds
+                logger.warning(f"Rate limited. Waiting {wait_time} seconds...")
+                await asyncio.sleep(wait_time)
+                retry_count += 1
+                
+            except ChannelPrivateError:
+                logger.error(f"Channel {channel_name} is private or inaccessible")
+                break
+                
+            except UsernameNotOccupiedError:
+                logger.error(f"Channel {channel_name} does not exist")
+                break
+                
+            except Exception as e:
+                logger.error(f"Error scraping channel {channel_name} (attempt {retry_count + 1}): {e}")
+                retry_count += 1
+                if retry_count < max_retries:
+                    await asyncio.sleep(5 * retry_count)  # Exponential backoff
         
         return messages_data
     
@@ -59,11 +107,12 @@ class TelegramScraper:
             return 'document'
         return 'other'
     
-    async def _download_media(self, message, channel_name):
-        """Download media files"""
+    async def _download_media(self, message, channel_name: str) -> str:
+        """Download media files with proper error handling and path management"""
         try:
             date_str = message.date.strftime('%Y-%m-%d') if message.date else 'unknown'
-            media_dir = f"data/raw/media/{channel_name}/{date_str}"
+            clean_channel_name = channel_name.replace('@', '')
+            media_dir = f"data/raw/media/{clean_channel_name}/{date_str}"
             os.makedirs(media_dir, exist_ok=True)
             
             # Get proper extension from media
@@ -71,15 +120,32 @@ class TelegramScraper:
                 ext = '.jpg'
             elif hasattr(message.media.document, 'mime_type'):
                 mime_type = message.media.document.mime_type
-                ext = '.jpg' if 'image/jpeg' in mime_type else '.png' if 'image/png' in mime_type else '.mp4' if 'video' in mime_type else ''
+                if 'image/jpeg' in mime_type:
+                    ext = '.jpg'
+                elif 'image/png' in mime_type:
+                    ext = '.png'
+                elif 'video' in mime_type:
+                    ext = '.mp4'
+                else:
+                    ext = '.bin'  # Generic binary file
             else:
-                ext = ''
+                ext = '.bin'
             
             filename = f"{message.id}_{int(message.date.timestamp())}{ext}"
-            await self.client.download_media(message, file=os.path.join(media_dir, filename))
+            file_path = os.path.join(media_dir, filename)
+            
+            # Check if file already exists
+            if os.path.exists(file_path):
+                logger.info(f"Media file already exists: {filename}")
+                return file_path
+            
+            await self.client.download_media(message, file=file_path)
+            logger.info(f"Downloaded media: {filename}")
+            return file_path
             
         except Exception as e:
-            logger.error(f"Error downloading media: {e}")
+            logger.error(f"Error downloading media for message {message.id}: {e}")
+            return None
     
     def save_to_json(self, data, channel_name):
         """Save scraped data to JSON file"""
