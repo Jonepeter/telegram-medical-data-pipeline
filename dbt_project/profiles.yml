@@ -1,0 +1,13 @@
+telegram_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "localhost"
+      user: "postgres"
+      password: "postgres@123"
+      port: 5432
+      dbname: "telegram_data"
+      schema: staging
+      threads: 4
+      keepalives_idle: 0

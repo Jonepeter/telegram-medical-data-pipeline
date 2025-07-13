@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: raw
+    tables:
+      - name: telegram_messages
+        columns:
+          - name: message_id
+            tests:
+              - not_null
+          - name: channel_name
+            tests:
+              - not_null
+      - name: image_detections
+        columns:
+          - name: message_id
+            tests:
+              - not_null
+
+models:
+  - name: dim_channels
+    columns:
+      - name: channel_id
+        tests:
+          - unique
+          - not_null
+      - name: channel_name
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_messages
+    columns:
+      - name: message_id
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_channels')
+              field: channel_id
