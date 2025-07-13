@@ -9,16 +9,20 @@ telethon==1.29.3
 # Data transformation
 dbt-core==1.6.6
 dbt-postgres==1.6.6
+dbt-utils==1.1.1
 
 # Object detection
 ultralytics==8.0.196
 opencv-python==4.8.1.78
 Pillow==10.0.1
+torch>=1.9.0
+torchvision>=0.10.0
 
 # API
 fastapi==0.103.2
-uvicorn==0.23.2
+uvicorn[standard]==0.23.2
 pydantic==2.4.2
+python-multipart==0.0.6
 
 # Orchestration
 dagster==1.5.1
@@ -29,3 +33,11 @@ dagster-postgres==0.21.1
 requests==2.31.0
 pandas==2.1.1
 numpy==1.25.2
+loguru==0.7.2
+pytest==7.4.2
+pytest-asyncio==0.21.1
+
+# Development
+black==23.9.1
+flake8==6.1.0
+pre-commit==3.4.0
