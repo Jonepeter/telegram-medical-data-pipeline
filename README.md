@@ -1,6 +1,25 @@
 # Telegram Data Pipeline
 
-End-to-end data pipeline for analyzing Ethiopian medical businesses from Telegram channels.
+## Telegram Data Pipeline for Ethiopian Medical Businesses
+
+This project implements an end-to-end data pipeline for analyzing medical business data from Ethiopian Telegram channels.
+The pipeline extracts messages and media from Telegram channels, processes the data using dbt transformations,
+enriches it with YOLO object detection, and exposes insights through a FastAPI application.
+
+Key Features:
+- Automated scraping of Telegram channels using Telethon
+- Data storage in PostgreSQL with raw and processed layers
+- Data transformation and modeling using dbt
+- Image analysis using YOLO object detection
+- REST API built with FastAPI for data access
+- Pipeline orchestration with Dagster
+- Containerized deployment using Docker
+
+The pipeline enables analysis of:
+- Product mentions and trends
+- Channel activity patterns
+- Image content and object detection
+- Message search and statistics
 
 ## Project Structure
 
