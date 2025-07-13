@@ -9,7 +9,7 @@ services:
     ports:
       - "5000:${DB_PORT}"
     volumes:
-      - postgres_data1:\C:\Users\jonep
+      - postgres_data1:/C:/Users/jonep/postgres_data
       # - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
 volumes:
   postgres_data1:
