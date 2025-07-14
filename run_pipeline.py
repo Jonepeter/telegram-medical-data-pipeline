@@ -40,7 +40,7 @@ def run_dbt():
     load_dotenv()
 
     # Use a relative path for portability
-    dbt_dir = os.path.join(os.getcwd(), "dbt_project")
+    dbt_dir = Path(os.path.join(os.getcwd(), "dbt_project"))
     print(f"dbt directory: {dbt_dir}")
 
     # Check if directory exists
@@ -49,9 +49,25 @@ def run_dbt():
         return
 
     try:
+        # Run dbt debug to check connection before running transformations
+        debug_result = subprocess.run(
+            "dbt debug",
+            cwd=dbt_dir,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        print(debug_result.stdout)
+        if debug_result.returncode != 0:
+            print("dbt debug failed:")
+            print(debug_result.stdout)
+            print(debug_result.stderr)
+            return
         # Run dbt run
         result = subprocess.run(
-            ["dbt", "run", "--no-use-colors"],
+            "dbt run",
+            shell=True,
             cwd=dbt_dir,
             capture_output=True,
             text=True,
@@ -64,7 +80,8 @@ def run_dbt():
 
         # Run dbt test
         result = subprocess.run(
-            ["dbt", "test", "--no-use-colors"],
+            "dbt test",
+            shell=True, 
             cwd=dbt_dir,
             capture_output=True,
             text=True,
@@ -92,10 +109,10 @@ async def main():
     """Run the complete pipeline"""
     print("Starting Telegram Data Pipeline...")
     
-    # # Phase 1: Scraping
+    # Phase 1: Scraping
     # await run_scraping()
     
-    # # Phase 2: Loading
+    # Phase 2: Loading
     # run_loading()
     
     # Phase 3: Transformation
