@@ -1,13 +1,11 @@
-telegram_analytics:
+telegram_pipeline:
   target: dev
   outputs:
     dev:
       type: postgres
-      host: ${DB_HOST}
-      user: ${DB_USER}
-      password: ${DB_PASSWORD}
-      port: ${DB_PORT}
-      dbname: ${DB_NAME}
-      schema: staging
-      threads: 4
-      keepalives_idle: 0
+      host: "{{ env_var('DB_HOST') }}"
+      user: "{{ env_var('DB_USER') }}"
+      password: "{{ env_var('DB_PASSWORD')  }}"
+      port: "{{ env_var('DB_PORT') | as_number}}"
+      dbname: "{{ env_var('DB_NAME') }}"
+      schema: "{{ env_var('DB_SCHEMA') }}"
