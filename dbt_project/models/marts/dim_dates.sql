@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema = 'mart') }}
 
 WITH date_spine AS (
     SELECT DISTINCT DATE(message_date) as date_day
