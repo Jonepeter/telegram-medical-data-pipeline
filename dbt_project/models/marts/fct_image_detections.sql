@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema = 'mart') }}
 
 SELECT 
     d.detection_id,
