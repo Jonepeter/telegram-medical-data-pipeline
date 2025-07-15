@@ -22,11 +22,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class TelegramScraper:
+    """
+    A class to scrape messages and media from Telegram channels using Telethon.
+    Handles authentication, message retrieval, media downloading, and error handling.
+    """
     def __init__(self):
+        """
+        Initialize the TelegramScraper with a Telethon client.
+        """
         self.client = TelegramClient('session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
     
     async def scrape_channel(self, channel_name: str, limit: int = 100) -> List[Dict[str, Any]]:
-        """Scrape messages from a Telegram channel with comprehensive error handling"""
+        """
+        Scrape messages from a specified Telegram channel.
+
+        Args:
+            channel_name (str): The Telegram channel username or ID.
+            limit (int): Maximum number of messages to scrape.
+
+        Returns:
+            List[Dict[str, Any]]: List of message data dictionaries.
+        """
         messages_data = []
         retry_count = 0
         max_retries = 3
@@ -98,7 +114,15 @@ class TelegramScraper:
         return messages_data
     
     def _get_media_type(self, media):
-        """Determine media type"""
+        """
+        Determine the type of media attached to a message.
+
+        Args:
+            media: The media object from a Telegram message.
+
+        Returns:
+            str or None: The media type ('photo', 'document', or 'other').
+        """
         if not media:
             return None
         if isinstance(media, MessageMediaPhoto):
@@ -108,7 +132,16 @@ class TelegramScraper:
         return 'other'
     
     async def _download_media(self, message, channel_name: str) -> str:
-        """Download media files with proper error handling and path management"""
+        """
+        Download media from a Telegram message to the local filesystem.
+
+        Args:
+            message: The Telegram message object.
+            channel_name (str): The name of the channel.
+
+        Returns:
+            str: The file path of the downloaded media, or None if failed.
+        """
         try:
             date_str = message.date.strftime('%Y-%m-%d') if message.date else 'unknown'
             clean_channel_name = channel_name.replace('@', '')
@@ -148,18 +181,30 @@ class TelegramScraper:
             return None
     
     def save_to_json(self, data, channel_name):
-        """Save scraped data to JSON file"""
-        date_str = datetime.now().strftime('%Y-%m-%d')
-        output_dir = f"data/raw/telegram_messages/{date_str}"
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filename = f"{output_dir}/{channel_name}.json"
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        logger.info(f"Saved {len(data)} messages to {filename}")
+        """
+        Save scraped message data to a JSON file.
+
+        Args:
+            data (list): List of message data dictionaries.
+            channel_name (str): The name of the channel.
+        """
+        try:
+            date_str = datetime.now().strftime('%Y-%m-%d')
+            output_dir = f"data/raw/telegram_messages/{date_str}"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            filename = f"{output_dir}/{channel_name}.json"
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"Saved {len(data)} messages to {filename}")
+        except Exception as e:
+            logger.error(f"Error saving data for {channel_name}: {e}")
 
 async def main():
+    """
+    Main entry point for scraping all channels listed in TELEGRAM_CHANNELS.
+    """
     scraper = TelegramScraper()
     
     for channel in TELEGRAM_CHANNELS:
