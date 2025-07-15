@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema = 'mart') }}
 
 SELECT 
     ROW_NUMBER() OVER (ORDER BY channel_name) as channel_id,
