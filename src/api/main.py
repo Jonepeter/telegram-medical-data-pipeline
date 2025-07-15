@@ -35,7 +35,7 @@ async def get_top_products(
                 SELECT 
                     UNNEST(STRING_TO_ARRAY(LOWER(message_text), ' ')) as word,
                     channel_id
-                FROM marts.fct_messages 
+                FROM public_mart.fct_messages 
                 WHERE message_text IS NOT NULL
             ) words
             WHERE LENGTH(word) > 3 
@@ -75,7 +75,7 @@ async def get_channel_activity(
                 c.first_message_date,
                 c.last_message_date,
                 COALESCE(daily_stats.avg_daily_messages, 0) as avg_daily_messages
-            FROM marts.dim_channels c
+            FROM public_mart.dim_channels c
             LEFT JOIN (
                 SELECT 
                     channel_id,
@@ -85,7 +85,7 @@ async def get_channel_activity(
                         channel_id,
                         date_day,
                         COUNT(*) as daily_count
-                    FROM marts.fct_messages
+                    FROM public_mart.fct_messages
                     GROUP BY channel_id, date_day
                 ) daily
                 GROUP BY channel_id
@@ -129,8 +129,8 @@ async def search_messages(
                 m.date_day,
                 m.has_media,
                 m.detection_count
-            FROM marts.fct_messages m
-            JOIN marts.dim_channels c ON m.channel_id = c.channel_id
+            FROM public_mart.fct_messages m
+            JOIN public_mart.dim_channels c ON m.channel_id = c.channel_id
             WHERE LOWER(m.message_text) LIKE LOWER(:search_query)
             ORDER BY m.date_day DESC
             LIMIT :limit
@@ -166,9 +166,9 @@ async def get_overview_stats(db: Session = Depends(get_db)):
                 COUNT(m.message_id) as total_messages,
                 COUNT(CASE WHEN m.has_media THEN 1 END) as messages_with_media,
                 COUNT(DISTINCT d.detection_id) as total_detections
-            FROM marts.fct_messages m
-            JOIN marts.dim_channels c ON m.channel_id = c.channel_id
-            LEFT JOIN marts.fct_image_detections d ON m.message_id = d.message_id
+            FROM public_mart.fct_messages m
+            JOIN public_mart.dim_channels c ON m.channel_id = c.channel_id
+            LEFT JOIN public_mart.fct_image_detections d ON m.message_id = d.message_id
         """)
         
         result = db.execute(query).first()
@@ -182,7 +182,3 @@ async def get_overview_stats(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting overview stats: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
