@@ -113,13 +113,13 @@ async def main():
     # await run_scraping()
     
     # Phase 2: Loading
-    # run_loading()
+    run_loading()
     
     # Phase 3: Transformation
     run_dbt()
     
     # Phase 4: Enrichment
-    # run_enrichment()
+    run_enrichment()
     
     print("Pipeline completed successfully!")
 
