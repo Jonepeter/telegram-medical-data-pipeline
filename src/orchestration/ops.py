@@ -1,5 +1,5 @@
 from dagster import op, get_dagster_logger
-from src.scraping.telegram_scraper import TelegramScraper
+from scraping.telegram_scraper import TelegramScraper
 from src.scraping.data_loader import DataLoader
 from src.enrichment.yolo_detector import YOLODetector
 import asyncio
